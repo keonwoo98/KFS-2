@@ -41,6 +41,10 @@ void print_kernel_stack(void)
 	__asm__ volatile ("mov %%esp, %0" : "=r"(esp));
 	top   = (uint32_t)(uintptr_t)stack_top;
 	start = esp & ~(uint32_t)0xf; /* align rows to 16 for readability */
+	/* size reports the stack actually in use (esp..top); the dump below
+	 * starts at the enclosing 16-byte row boundary, so its first row may
+	 * show up to 15 bytes below esp. Row alignment keeps any 4-byte
+	 * value (e.g. the canary) inside a single row. */
 	printk("kernel stack: esp=%08x top=%08x size=%u bytes\n",
 		esp, top, top - esp);
 	dump_hex((const void *)start, top - start);
