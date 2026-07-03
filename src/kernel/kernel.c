@@ -1,4 +1,5 @@
 #include "kernel.h"
+#include "gdt.h"
 #include "vga.h"
 #include "printk.h"
 
@@ -10,6 +11,7 @@ void kernel_main(uint32_t magic, uint32_t mb_info_addr)
 		printk("PANIC: bad multiboot magic: 0x%x\n", magic);
 		return;
 	}
+	gdt_init();
 	if (selftest_run() == 0)
 		printk("kfs: selftest ok\n");
 	/* after selftest: scroll_exercise would push this banner off screen */
