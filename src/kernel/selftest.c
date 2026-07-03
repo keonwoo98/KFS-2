@@ -1,6 +1,7 @@
 #include "libk.h"
 #include "vga.h"
 #include "kernel.h"
+#include "gdt.h"
 
 static int g_failed;
 
@@ -46,6 +47,35 @@ static void test_str(void)
 	check(strcmp("ab", "abc") < 0, "strcmp prefix");
 }
 
+/* Verify the GDT the CPU is actually using: read GDTR back with sgdt,
+ * check the live segment selectors, and compare the kernel-code
+ * descriptor bytes at 0x808 against the expected encoding. */
+static void test_gdt(void)
+{
+	struct gdt_ptr gdtr;
+	uint16_t       sel;
+	int            before = g_failed;
+	static const uint8_t kcode[8] = {
+		0xff, 0xff, 0x00, 0x00, 0x00, 0x9a, 0xcf, 0x00
+	};
+
+	__asm__ volatile ("sgdt %0" : "=m"(gdtr));
+	check(gdtr.base == GDT_BASE, "gdtr base 0x800");
+	/* cast: avoid -Wsign-compare (uint16_t vs size_t) under -Werror */
+	check(gdtr.limit == (uint16_t)(sizeof(struct gdt_entry) * GDT_ENTRIES - 1),
+		"gdtr limit 55");
+	__asm__ volatile ("mov %%cs, %0" : "=r"(sel));
+	check(sel == GDT_SEL_KCODE, "cs selector");
+	__asm__ volatile ("mov %%ds, %0" : "=r"(sel));
+	check(sel == GDT_SEL_KDATA, "ds selector");
+	__asm__ volatile ("mov %%ss, %0" : "=r"(sel));
+	check(sel == GDT_SEL_KSTACK, "ss selector");
+	check(memcmp((const void *)(GDT_BASE + 8), kcode, 8) == 0,
+		"kernel code descriptor bytes");
+	if (g_failed == before)
+		vga_puts("kfs: gdt ok\n");
+}
+
 /* Print 30 numbered lines: forces the 25-row screen to scroll.
  * boot_test asserts SCRL29 visible, SCRL00 scrolled away. */
 static void scroll_exercise(void)
@@ -66,5 +96,6 @@ int selftest_run(void)
 	scroll_exercise(); /* first: FAIL lines must survive the scrolling */
 	test_mem();
 	test_str();
+	test_gdt();
 	return g_failed;
 }
