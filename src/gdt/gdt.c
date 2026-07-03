@@ -2,16 +2,17 @@
 
 /* Build the table directly at GDT_BASE. The linker cannot place it there:
  * GRUB (multiboot) refuses to load ELF segments below 1 MiB, so the table
- * is written at runtime instead. */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
-static struct gdt_entry *const gdt = (struct gdt_entry *)GDT_BASE;
-#pragma GCC diagnostic pop
+ * is written at runtime instead. volatile: the only reader is the CPU via
+ * lgdt inside the opaque asm routine, so the stores must never be elided. */
+static volatile struct gdt_entry *const gdt =
+	(volatile struct gdt_entry *)GDT_BASE;
 static struct gdt_ptr gp;
 
 /* gdt_flush.asm: lgdt, reload DS/ES/FS/GS/SS, far-jump to reload CS. */
 void gdt_flush(uint32_t gdt_ptr_addr);
 
+/* GCC -O2 misclassifies a pointer cast from an integer constant as a
+ * zero-size object; the writes are in-range (idx 0..GDT_ENTRIES-1). */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
 #pragma GCC diagnostic ignored "-Wstringop-overflow="
@@ -28,9 +29,6 @@ static void gdt_set_gate(int idx, uint32_t base, uint32_t limit,
 }
 #pragma GCC diagnostic pop
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
-#pragma GCC diagnostic ignored "-Wstringop-overflow="
 void gdt_init(void)
 {
 	/* All segments are flat: base 0, limit 0xFFFFF pages (4 GiB).
@@ -46,4 +44,3 @@ void gdt_init(void)
 	gp.base  = GDT_BASE;
 	gdt_flush((uint32_t)&gp);
 }
-#pragma GCC diagnostic pop
