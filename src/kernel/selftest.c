@@ -64,6 +64,10 @@ static void test_gdt(void)
 	/* cast: avoid -Wsign-compare (uint16_t vs size_t) under -Werror */
 	check(gdtr.limit == (uint16_t)(sizeof(struct gdt_entry) * GDT_ENTRIES - 1),
 		"gdtr limit 55");
+	/* CS==0x08 and DS==0x10 coincide with the selectors GRUB leaves us
+	 * on entry, so these checks do NOT prove our far jump / data reload
+	 * ran. Only SS==0x18 does -- GRUB never uses 0x18 -- so it is the
+	 * sole proof of a real segment reload. Do not remove the SS check. */
 	__asm__ volatile ("mov %%cs, %0" : "=r"(sel));
 	check(sel == GDT_SEL_KCODE, "cs selector");
 	__asm__ volatile ("mov %%ds, %0" : "=r"(sel));
