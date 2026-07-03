@@ -5,6 +5,10 @@
 
 void kernel_main(uint32_t magic, uint32_t mb_info_addr)
 {
+	/* volatile: force a real stack slot so the dump provably contains
+	 * a known value (02 b0 ad 2b little-endian) for the boot test. */
+	volatile uint32_t stack_canary;
+
 	vga_init();
 	if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
 		vga_set_color(VGA_LIGHT_RED, VGA_BLACK);
@@ -19,6 +23,9 @@ void kernel_main(uint32_t magic, uint32_t mb_info_addr)
 	printk("ptest [%c|%s|%d|%d|%u|%x|%%|%08x|%02x]\n",
 		'X', "str", -42, -2147483647 - 1, 4294967295u, 0xdeadbeef,
 		0xc0ffee, 0xf);
+	stack_canary = MULTIBOOT_BOOTLOADER_MAGIC;
+	(void)stack_canary;
+	print_kernel_stack();
 	vga_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
 	printk("\n42\n");
 }

@@ -7,5 +7,7 @@
 
 void kernel_main(uint32_t magic, uint32_t mb_info_addr);
 int  selftest_run(void);
+void dump_hex(const void *addr, uint32_t len);
+void print_kernel_stack(void);
 
 #endif
