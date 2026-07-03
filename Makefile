@@ -86,7 +86,7 @@ run: $(ISO)
 
 test: $(ISO)
 	sh tests/boot_test.sh " 42 " "selftest ok" "2badb002" \
-		"ptest [X|str|-42|-2147483648|4294967295|deadbeef|%]" \
+		"ptest [X|str|-42|-2147483648|4294967295|deadbeef|%|00c0ffee|0f]" \
 		"SCRL29" "!SCRL00" "!Booting" "!PANIC"
 	@sz=$$(stat -c %s $(ISO)); \
 	if [ $$sz -le 10485760 ]; then \
