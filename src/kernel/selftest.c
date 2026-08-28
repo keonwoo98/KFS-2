@@ -3,6 +3,7 @@
 #include "kernel.h"
 #include "gdt.h"
 #include "keyboard.h"
+#include "shell.h"
 
 static int g_failed;
 
@@ -94,6 +95,31 @@ static void test_keyboard(void)
 	check(kbd_translate(0x3B, false) == 0,    "kbd f1 unmapped");
 }
 
+/* Pure parsing: no hardware, no screen output. Silent on success. */
+static void test_shell(void)
+{
+	char     buf[32];
+	char    *argv[3];
+	uint32_t v = 0;
+
+	check(shell_parse_u32("0x1234", &v) == 0 && v == 0x1234, "parse hex");
+	check(shell_parse_u32("64", &v) == 0 && v == 64, "parse dec");
+	check(shell_parse_u32("0xFFFFFFFF", &v) == 0 && v == 0xFFFFFFFFu,
+		"parse hex max");
+	check(shell_parse_u32("0x100000000", &v) == -1, "parse overflow");
+	check(shell_parse_u32("12g", &v) == -1, "parse junk");
+	check(shell_parse_u32("", &v) == -1, "parse empty");
+	check(shell_parse_u32("0x", &v) == -1, "parse bare 0x");
+
+	memcpy(buf, "  dump   0x10  20  ", 20);
+	check(shell_tokenize(buf, argv, 3) == 3
+		&& strcmp(argv[0], "dump") == 0
+		&& strcmp(argv[1], "0x10") == 0
+		&& strcmp(argv[2], "20") == 0, "tokenize spaces");
+	memcpy(buf, "", 1);
+	check(shell_tokenize(buf, argv, 3) == 0, "tokenize empty");
+}
+
 /* Print 30 numbered lines: forces the 25-row screen to scroll.
  * boot_test asserts SCRL29 visible, SCRL00 scrolled away. */
 static void scroll_exercise(void)
@@ -116,5 +142,6 @@ int selftest_run(void)
 	test_str();
 	test_gdt();
 	test_keyboard();
+	test_shell();
 	return g_failed;
 }
