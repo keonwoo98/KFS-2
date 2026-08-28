@@ -40,6 +40,15 @@ static void print_signed(int32_t v, int width, char pad)
 		print_number(0, (uint32_t)v, 10, width, pad);
 }
 
+/* Pointers print as a full 32-bit address ("0x00001234"): the width is
+ * fixed at 8 hex digits so there is no ambiguity about the address size,
+ * which is why an explicit field width is ignored for %p. */
+static void print_ptr(uintptr_t p)
+{
+	vga_puts("0x");
+	print_number(0, (uint32_t)p, 16, 8, '0');
+}
+
 void printk(const char *fmt, ...)
 {
 	va_list ap;
@@ -81,6 +90,8 @@ void printk(const char *fmt, ...)
 			print_number(0, va_arg(ap, uint32_t), 10, width, pad);
 		} else if (*fmt == 'x') {
 			print_number(0, va_arg(ap, uint32_t), 16, width, pad);
+		} else if (*fmt == 'p') {
+			print_ptr((uintptr_t)va_arg(ap, void *)); /* width ignored */
 		} else if (*fmt == '%') {
 			vga_putchar('%');
 		} else {
