@@ -2,6 +2,7 @@
 #include "gdt.h"
 #include "vga.h"
 #include "printk.h"
+#include "keyboard.h"
 
 void kernel_main(uint32_t magic, uint32_t mb_info_addr)
 {
@@ -28,4 +29,14 @@ void kernel_main(uint32_t magic, uint32_t mb_info_addr)
 	print_kernel_stack();
 	vga_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
 	printk("\n42\n");
+	/* TEMPORARY: replaced by shell_run() in Task 4. Present so that Task 2's
+	 * sendkey probe has something that visibly reacts to a keystroke. */
+	keyboard_init();
+	for (;;) {
+		char c = keyboard_poll();
+
+		if (c != 0)
+			vga_putchar(c);
+		__asm__ volatile ("pause");
+	}
 }

@@ -2,6 +2,7 @@
 #include "vga.h"
 #include "kernel.h"
 #include "gdt.h"
+#include "keyboard.h"
 
 static int g_failed;
 
@@ -80,6 +81,19 @@ static void test_gdt(void)
 		vga_puts("kfs: gdt ok\n");
 }
 
+/* Pure table lookup: no hardware, no screen output. Silent on success. */
+static void test_keyboard(void)
+{
+	check(kbd_translate(0x1E, false) == 'a',  "kbd a");
+	check(kbd_translate(0x1E, true)  == 'A',  "kbd shift a");
+	check(kbd_translate(0x02, false) == '1',  "kbd 1");
+	check(kbd_translate(0x02, true)  == '!',  "kbd shift 1");
+	check(kbd_translate(0x1C, false) == '\n', "kbd enter");
+	check(kbd_translate(0x0E, false) == '\b', "kbd backspace");
+	check(kbd_translate(0x39, false) == ' ',  "kbd space");
+	check(kbd_translate(0x3B, false) == 0,    "kbd f1 unmapped");
+}
+
 /* Print 30 numbered lines: forces the 25-row screen to scroll.
  * boot_test asserts SCRL29 visible, SCRL00 scrolled away. */
 static void scroll_exercise(void)
@@ -101,5 +115,6 @@ int selftest_run(void)
 	test_mem();
 	test_str();
 	test_gdt();
+	test_keyboard();
 	return g_failed;
 }
