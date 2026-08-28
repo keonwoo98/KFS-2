@@ -31,6 +31,20 @@ static void update_cursor(void)
 	outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
 }
 
+/* Register 0x0A (Cursor Start) holds the first scanline of the cell the cursor
+ * covers, and bit 5 switches the cursor off; 0x0B (Cursor End) holds the last.
+ * On the 16-scanline cell of the default text mode, 14..15 is the usual
+ * underline. Written unconditionally rather than read-modify-write: multiboot
+ * makes no promise about the CRTC state GRUB leaves behind, and inheriting it
+ * is exactly what this function exists to avoid. */
+void vga_set_cursor(bool visible)
+{
+	outb(0x3D4, 0x0A);
+	outb(0x3D5, visible ? 14 : 0x20);
+	outb(0x3D4, 0x0B);
+	outb(0x3D5, 15);
+}
+
 void vga_clear(void)
 {
 	size_t i;
@@ -46,6 +60,7 @@ void vga_init(void)
 {
 	vga_set_color(VGA_LIGHT_GREY, VGA_BLACK);
 	vga_clear();
+	vga_set_cursor(true);
 }
 
 /* Copy rows 1..24 one row up, blank the last row. Explicit loop:

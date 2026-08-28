@@ -15,7 +15,7 @@ typedef uint32_t           size_t;
 typedef int32_t            ssize_t;
 typedef uint32_t           uintptr_t;
 
-typedef uint8_t            bool;
+typedef _Bool              bool;   /* C99 keyword: works freestanding */
 # define true  1
 # define false 0
 

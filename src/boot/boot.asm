@@ -18,7 +18,7 @@ align 4
 section .bss
 align 16
 global stack_bottom
-global stack_top
+global stack_top                     ; exported for the kernel stack dump
 stack_bottom:
 	resb 16384                       ; 16 KiB kernel stack
 stack_top:
@@ -29,7 +29,8 @@ extern kernel_main
 
 _start:
 	mov esp, stack_top               ; C needs a stack; GRUB gives none
-	sub esp, 8                       ; +2 pushes +ret = entry esp 16-aligned (psABI)
+	sub esp, 8                       ; psABI: esp is 16-aligned at the `call`
+	                                 ; (so at entry esp%16==12, esp+4 aligned)
 	cld                              ; SysV ABI expects DF cleared
 	push ebx                         ; arg 2: multiboot info address
 	push eax                         ; arg 1: multiboot magic

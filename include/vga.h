@@ -28,6 +28,7 @@ typedef enum vga_color {
 void vga_init(void);
 void vga_clear(void);
 void vga_set_color(vga_color_t fg, vga_color_t bg);
+void vga_set_cursor(bool visible);
 void vga_putchar(char c);
 void vga_puts(const char *s);
 
