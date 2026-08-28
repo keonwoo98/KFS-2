@@ -9,22 +9,32 @@ SECTIONS
 	.text BLOCK(4K) : ALIGN(4K)
 	{
 		*(.multiboot)
-		*(.text)
+		*(.text .text.*)
 	}
 
 	.rodata BLOCK(4K) : ALIGN(4K)
 	{
-		*(.rodata*)
+		*(.rodata .rodata.*)
 	}
 
 	.data BLOCK(4K) : ALIGN(4K)
 	{
-		*(.data)
+		*(.data .data.*)
 	}
 
 	.bss BLOCK(4K) : ALIGN(4K)
 	{
 		*(COMMON)
-		*(.bss)
+		*(.bss .bss.*)
+	}
+
+	/* Keep the loaded image to exactly the four sections above. Unwind
+	 * tables and toolchain banners are dead weight in a kernel. Do NOT
+	 * discard .note.GNU-stack: ld derives the non-executable PT_GNU_STACK
+	 * program header from it. */
+	/DISCARD/ :
+	{
+		*(.eh_frame .eh_frame.*)
+		*(.comment)
 	}
 }

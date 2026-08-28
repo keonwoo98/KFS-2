@@ -2,5 +2,17 @@
 *.d
 kernel.bin
 isodir/
+
+# the turn-in image is committed on purpose (subject ch. VII)
 *.iso
+!kfs.iso
+
+# subject PDFs: ~1.4 MB each, must not enter the turn-in repo
 *.pdf
+
+.gstack/
+
+# API keys - never commit
+.env
+.env.*
+!.env.example
