@@ -3,6 +3,8 @@
 #include "keyboard.h"
 #include "vga.h"
 #include "printk.h"
+#include "kernel.h"
+#include "io.h"
 
 /* Accumulate with an overflow guard: v * base + d must stay inside 32 bits,
  * which is exactly v <= (UINT32_MAX - d) / base. Checking after the multiply
@@ -75,10 +77,22 @@ struct cmd {
  * each other; this ordering resolves that without a tentative definition of
  * a const array (which is not valid C). Task 5 extends all three blocks. */
 static void cmd_help(int argc, char **argv);
+static void cmd_stack(int argc, char **argv);
+static void cmd_gdt(int argc, char **argv);
+static void cmd_dump(int argc, char **argv);
+static void cmd_clear(int argc, char **argv);
+static void cmd_halt(int argc, char **argv);
+static void cmd_reboot(int argc, char **argv);
 
 /* One row per command: adding one in KFS-3 is a single line here. */
 static const struct cmd g_cmds[] = {
-	{ "help", "list commands", cmd_help },
+	{ "help",   "list commands",                  cmd_help   },
+	{ "stack",  "hexdump the kernel stack",       cmd_stack  },
+	{ "gdt",    "hexdump the GDT at 0x800",       cmd_gdt    },
+	{ "dump",   "dump <addr> [len], len 64",      cmd_dump   },
+	{ "clear",  "clear the screen",               cmd_clear  },
+	{ "halt",   "stop the CPU",                   cmd_halt   },
+	{ "reboot", "reset via the 8042",             cmd_reboot },
 	{ NULL, NULL, NULL }
 };
 
@@ -90,6 +104,78 @@ static void cmd_help(int argc, char **argv)
 	(void)argv;
 	for (c = g_cmds; c->name; c++)
 		printk("  %s -- %s\n", c->name, c->help);
+}
+
+static void cmd_stack(int argc, char **argv)
+{
+	(void)argc;
+	(void)argv;
+	print_kernel_stack();
+}
+
+static void cmd_gdt(int argc, char **argv)
+{
+	(void)argc;
+	(void)argv;
+	/* 7 entries * 8 bytes, at the address the subject mandates. */
+	dump_hex((const void *)0x00000800, 56);
+}
+
+static void cmd_dump(int argc, char **argv)
+{
+	uint32_t addr;
+	uint32_t len = 64;
+
+	if (argc < 2) {
+		printk("usage: dump <addr> [len]\n");
+		return;
+	}
+	if (shell_parse_u32(argv[1], &addr) != 0) {
+		printk("dump: bad address\n");
+		return;
+	}
+	if (argc >= 3 && shell_parse_u32(argv[2], &len) != 0) {
+		printk("dump: bad length\n");
+		return;
+	}
+	/* No validity check on purpose: showing whatever is at an address is
+	 * what a debugger is for. Without paging nothing faults anyway. */
+	dump_hex((const void *)(uintptr_t)addr, len);
+}
+
+static void cmd_clear(int argc, char **argv)
+{
+	(void)argc;
+	(void)argv;
+	vga_clear();
+}
+
+static void cmd_halt(int argc, char **argv)
+{
+	(void)argc;
+	(void)argv;
+	printk("halted.\n");
+	__asm__ volatile ("cli");
+	for (;;)
+		__asm__ volatile ("hlt");
+}
+
+static void cmd_reboot(int argc, char **argv)
+{
+	uint32_t i;
+
+	(void)argc;
+	(void)argv;
+	printk("rebooting...\n");
+	outb(0x64, 0xFE);           /* pulse the 8042 reset line */
+	for (i = 0; i < 10000000u; i++)
+		__asm__ volatile ("pause");
+	/* Never leave the machine in an undefined state if the pulse did
+	 * nothing: say so and stop. */
+	printk("reboot failed; halting\n");
+	__asm__ volatile ("cli");
+	for (;;)
+		__asm__ volatile ("hlt");
 }
 
 static void shell_exec(char *line, char **argv)
