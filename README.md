@@ -107,14 +107,16 @@ kfs> help
   help -- list commands
   stack -- hexdump the kernel stack
   gdt -- hexdump the GDT at 0x800
-  dump -- dump <addr> [len], len 64
+  dump -- dump <addr> [len=64, max 4096]
   clear -- clear the screen
   halt -- stop the CPU
   reboot -- reset via the 8042
 ```
 
 `dump` takes `0x`-prefixed hex or plain decimal, so `dump 0x100000 32`
-shows the first 32 bytes of the kernel image. There is no IDT yet, so the
+shows the first 32 bytes of the kernel image. Length is capped at one 4 KiB
+page: with no IDT there is no way to interrupt a running command, so an
+unbounded dump could never be stopped. There is no IDT yet, so the
 keyboard is polled rather than interrupt-driven: `keyboard_poll()` returns
 0 when the 8042 has nothing waiting. That costs a busy CPU while the shell
 idles — `hlt` cannot be used, because with interrupts masked and no IDT it

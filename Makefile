@@ -140,7 +140,14 @@ test: $(ISO)
 # Types a command into the shell and checks what it printed. Separate target
 # so `make test` stays the untouched mandatory regression net.
 test-shell: $(ISO)
-	KEYS="g d t ret" sh tests/boot_test.sh \
+# The tab is deliberate: it must produce no character, or the line would be
+# "g<tab>dt" and never match the command. Typing it here proves it is swallowed.
+	KEYS="g tab d t ret" sh tests/boot_test.sh \
 	    "ff ff 00 00 00 9a cf 00" "kfs>"
+# An over-long len stops exactly at DUMP_MAX, so the last row is 0x00000ff0
+# (4096-16) and the prompt comes back. Uncapped, the loop would run to 99999
+# and that row would have scrolled off -- the assertion is the proof.
+	KEYS="d u m p spc 0 spc 9 9 9 9 9 ret" sh tests/boot_test.sh \
+	    "00000ff0" "kfs>"
 
 endif
