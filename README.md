@@ -73,6 +73,8 @@ src/kernel/stack_dump.c dump_hex + print_kernel_stack (esp..stack_top)
 src/drivers/vga.c      VGA text driver (0xB8000): colors, scroll, hw cursor
 src/lib/string.c       memset/memcpy/memmove/memcmp/strlen/strcmp
 src/lib/printk.c       %c %s %d %u %x %p %% with zero-pad width (%08x, %02x)
+src/drivers/keyboard.c polling PS/2 keyboard (scancode set 1, no IRQ)
+src/shell/shell.c      debug shell: line editing, tokenizer, 7 commands
 include/               kernel headers (types.h is the freestanding base)
 linker.ld              custom linker script (kernel at 1 MiB)
 grub.cfg               GRUB menu entry
@@ -95,3 +97,29 @@ flat (base 0, 4 GiB limit), so every pointer — including esp — stays
 valid across the switch. Self-tests then read GDTR back with `sgdt` and
 verify the live selectors, and `print_kernel_stack` hexdumps the region
 esp..stack_top (the stack grows downward from `stack_top`).
+
+## Shell (bonus)
+
+After the boot banners the kernel drops into a polling debug shell:
+
+```
+kfs> help
+  help -- list commands
+  stack -- hexdump the kernel stack
+  gdt -- hexdump the GDT at 0x800
+  dump -- dump <addr> [len], len 64
+  clear -- clear the screen
+  halt -- stop the CPU
+  reboot -- reset via the 8042
+```
+
+`dump` takes `0x`-prefixed hex or plain decimal, so `dump 0x100000 32`
+shows the first 32 bytes of the kernel image. There is no IDT yet, so the
+keyboard is polled rather than interrupt-driven: `keyboard_poll()` returns
+0 when the 8042 has nothing waiting. That costs a busy CPU while the shell
+idles — `hlt` cannot be used, because with interrupts masked and no IDT it
+would never wake.
+
+`make test` boots without typing anything and checks the mandatory output.
+`make test-shell` types a command through the QEMU monitor and checks what
+the shell printed.
