@@ -22,19 +22,43 @@ GRUB, QEMU all live in the build container (Debian, pinned to
 | `make shell` | interactive shell inside the build container |
 | `make clean` / `fclean` / `re` | the usual |
 
-With Podman: `make CONTAINER=podman <target>` (adds `:Z` volume label and
-`--userns=keep-id` automatically).
+The container engine is auto-detected. A real `podman` wins over the `docker`
+shim that Fedora ships, and podman automatically gets `:Z` (SELinux label) and
+`--userns=keep-id`. Force one with `make CONTAINER=docker`.
 
-To leave `make run`: press `ESC` then `2` to reach the QEMU monitor and
-type `quit` (if the terminal ends up garbled, run `reset`).
+`make run` prints how to quit before it boots. QEMU's curses display puts the
+terminal in raw mode, so Ctrl-C is delivered to the guest instead of QEMU;
+kill the container by name from a second terminal:
 
-Inside `make shell`, run targets as `make all IN_CONTAINER=1`.
+```sh
+podman kill kfs2-run    # or: docker kill kfs2-run
+reset                   # only if the terminal is left garbled
+```
+
+Rebuilding regenerates `kfs.iso`, so `git status` will show it modified;
+restore the committed turn-in image with `git checkout kfs.iso`. Inside
+`make shell`, run targets as `make all IN_CONTAINER=1`.
 
 ## 42 cluster (Fedora, no sudo)
 
+The home quota is small, so clone into `/goinfre`. Nothing else is needed --
+podman is detected automatically:
+
 ```sh
-sh scripts/cluster_setup.sh        # once: podman storage -> /goinfre
-make CONTAINER=podman test
+cd /goinfre/$USER && git clone <this repo> KFS-2 && cd KFS-2
+make test
+```
+
+If podman still keeps its image storage in your home directory, relocate it
+once with `sh scripts/cluster_setup.sh` (check `podman info --format
+'{{.Store.GraphRoot}}'` first -- on most cluster accounts it already points at
+/goinfre and the script is unnecessary).
+
+Cluster hosts have a native QEMU, so the same ISO can be booted in a real
+window instead of the terminal:
+
+```sh
+qemu-system-i386 -cdrom kfs.iso
 ```
 
 ## Layout
@@ -46,9 +70,9 @@ src/gdt/gdt_flush.asm  lgdt + segment register reload (far jump for CS)
 src/kernel/kernel.c    kernel entry: magic check, gdt_init, banner, "42"
 src/kernel/selftest.c  on-boot libk/scroll/GDT self-tests (print-on-failure)
 src/kernel/stack_dump.c dump_hex + print_kernel_stack (esp..stack_top)
-src/drivers/vga.c      VGA text driver (0xB8000)
+src/drivers/vga.c      VGA text driver (0xB8000): colors, scroll, hw cursor
 src/lib/string.c       memset/memcpy/memmove/memcmp/strlen/strcmp
-src/lib/printk.c       %c %s %d %u %x %% with zero-pad width (%08x, %02x)
+src/lib/printk.c       %c %s %d %u %x %p %% with zero-pad width (%08x, %02x)
 include/               kernel headers (types.h is the freestanding base)
 linker.ld              custom linker script (kernel at 1 MiB)
 grub.cfg               GRUB menu entry
