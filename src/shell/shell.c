@@ -65,6 +65,11 @@ int shell_tokenize(char *line, char **argv, int max)
 
 #define LINE_MAX 128u
 #define ARGV_MAX 3
+/* The shell cannot be interrupted -- no IDT, interrupts masked -- so a long
+ * dump would run to completion with no way to stop it, and a len near 2^32
+ * would wrap dump_hex's "i += 16" counter and never terminate at all. One
+ * 4 KiB page is the largest span worth reading at once, and it bounds both. */
+#define DUMP_MAX 4096u
 
 struct cmd {
 	const char *name;
@@ -89,7 +94,7 @@ static const struct cmd g_cmds[] = {
 	{ "help",   "list commands",                  cmd_help   },
 	{ "stack",  "hexdump the kernel stack",       cmd_stack  },
 	{ "gdt",    "hexdump the GDT at 0x800",       cmd_gdt    },
-	{ "dump",   "dump <addr> [len], len 64",      cmd_dump   },
+	{ "dump",   "dump <addr> [len=64, max 4096]", cmd_dump   },
 	{ "clear",  "clear the screen",               cmd_clear  },
 	{ "halt",   "stop the CPU",                   cmd_halt   },
 	{ "reboot", "reset via the 8042",             cmd_reboot },
@@ -137,6 +142,10 @@ static void cmd_dump(int argc, char **argv)
 	if (argc >= 3 && shell_parse_u32(argv[2], &len) != 0) {
 		printk("dump: bad length\n");
 		return;
+	}
+	if (len > DUMP_MAX) {
+		printk("dump: len capped at %u\n", DUMP_MAX);
+		len = DUMP_MAX;
 	}
 	/* No validity check on purpose: showing whatever is at an address is
 	 * what a debugger is for. Without paging nothing faults anyway. */
