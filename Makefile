@@ -140,6 +140,7 @@ test: $(ISO)
 # Types a command into the shell and checks what it printed. Separate target
 # so `make test` stays the untouched mandatory regression net.
 test-shell: $(ISO)
-	KEYS="h i" sh tests/boot_test.sh "hi"
+	KEYS="h e l p ret" sh tests/boot_test.sh \
+	    "help -- list commands" "kfs>"
 
 endif

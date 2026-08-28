@@ -83,6 +83,11 @@ void vga_putchar(char c)
 		g_row++;
 	} else if (c == '\r') {
 		g_col = 0;
+	} else if (c == '\b') {
+		/* Cursor only, like a terminal: erasing is the caller's job
+		 * ("\b \b"). Keeps this driver free of an erase policy. */
+		if (g_col > 0)
+			g_col--;
 	} else if (c == '\t') {
 		g_col = (g_col + 8) & ~(size_t)7;
 	} else {
