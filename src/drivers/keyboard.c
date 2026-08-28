@@ -11,10 +11,13 @@
 #define SC_BREAK     0x80   /* release = make code | 0x80 */
 
 /* US QWERTY, scancode set 1. Index = make code; 0 means "no character".
- * Two tables rather than a shift rule: shorter, and nothing to get wrong. */
+ * Two tables rather than a shift rule: shorter, and nothing to get wrong.
+ * Tab (0x0F) is deliberately 0: there is no completion to trigger, and the
+ * tokenizer splits on ' ' only, so an emitted '\t' would sit invisibly in
+ * the line and make the command silently fail to match. */
 static const char kbd_us[128] = {
 	 0,    0,   '1',  '2',  '3',  '4',  '5',  '6',   /* 0x00-0x07 */
-	'7',  '8',  '9',  '0',  '-',  '=', '\b', '\t',   /* 0x08-0x0F */
+	'7',  '8',  '9',  '0',  '-',  '=', '\b',    0,   /* 0x08-0x0F */
 	'q',  'w',  'e',  'r',  't',  'y',  'u',  'i',   /* 0x10-0x17 */
 	'o',  'p',  '[',  ']', '\n',   0,   'a',  's',   /* 0x18-0x1F */
 	'd',  'f',  'g',  'h',  'j',  'k',  'l',  ';',   /* 0x20-0x27 */
@@ -25,7 +28,7 @@ static const char kbd_us[128] = {
 
 static const char kbd_us_shift[128] = {
 	 0,    0,   '!',  '@',  '#',  '$',  '%',  '^',   /* 0x00-0x07 */
-	'&',  '*',  '(',  ')',  '_',  '+', '\b', '\t',   /* 0x08-0x0F */
+	'&',  '*',  '(',  ')',  '_',  '+', '\b',    0,   /* 0x08-0x0F */
 	'Q',  'W',  'E',  'R',  'T',  'Y',  'U',  'I',   /* 0x10-0x17 */
 	'O',  'P',  '{',  '}', '\n',   0,   'A',  'S',   /* 0x18-0x1F */
 	'D',  'F',  'G',  'H',  'J',  'K',  'L',  ':',   /* 0x20-0x27 */
