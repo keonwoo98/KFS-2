@@ -39,7 +39,7 @@ DEP     := $(OBJ:.o=.d)
 # consider it up to date and the next build would skip the check that failed.
 .DELETE_ON_ERROR:
 
-.PHONY: all run test shell image clean fclean re
+.PHONY: all run test test-shell shell image clean fclean re
 
 # ---- housekeeping: same rules inside and outside the container ----
 clean:
@@ -88,6 +88,9 @@ run: image
 test: image
 	$(RUN) $(IMAGE) make test IN_CONTAINER=1
 
+test-shell: image
+	$(RUN) $(IMAGE) make test-shell IN_CONTAINER=1
+
 shell: image
 	$(RUN) -it $(IMAGE) bash
 
@@ -133,5 +136,10 @@ test: $(ISO)
 	else \
 	    echo "FAIL iso too big: $$sz bytes"; exit 1; \
 	fi
+
+# Types a command into the shell and checks what it printed. Separate target
+# so `make test` stays the untouched mandatory regression net.
+test-shell: $(ISO)
+	KEYS="h i" sh tests/boot_test.sh "hi"
 
 endif

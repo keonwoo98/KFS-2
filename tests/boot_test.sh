@@ -9,9 +9,27 @@ set -u
 
 ISO=${ISO:-kfs.iso}
 BOOT_WAIT=${BOOT_WAIT:-6}
+KEYS=${KEYS:-}
 
-DUMP=$( (sleep "$BOOT_WAIT"; echo 'xp /4000bx 0xb8000'; sleep 1; echo quit) \
-	| qemu-system-i386 -cdrom "$ISO" -display none -monitor stdio -no-reboot 2>/dev/null)
+# Monitor script: wait for boot, optionally type, then dump the text buffer.
+# Each sendkey is one press+release; the small sleep lets the polling kernel
+# drain the 8042 between keys.
+monitor_script() {
+    sleep "$BOOT_WAIT"
+    if [ -n "$KEYS" ]; then
+        for k in $KEYS; do
+            echo "sendkey $k"
+            sleep 0.1
+        done
+        sleep 1
+    fi
+    echo 'xp /4000bx 0xb8000'
+    sleep 1
+    echo quit
+}
+
+DUMP=$(monitor_script \
+    | qemu-system-i386 -cdrom "$ISO" -display none -monitor stdio -no-reboot 2>/dev/null)
 
 SCREEN=$(printf '%s\n' "$DUMP" \
 	| grep ': 0x' \
